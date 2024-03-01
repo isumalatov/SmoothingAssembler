@@ -23,7 +23,6 @@ Image createImage(int width, int height) {
 }
 
 void fillImage(Image img, int width, int height) {
-    srand(time(NULL)); // Inicializar la semilla del generador de números aleatorios
     for(int i = 0; i < height; i++) {
         for(int j = 0; j < width; j++) {
             img[i][j].r = rand() % 256;
@@ -80,10 +79,10 @@ void freeImage(Image img, int height) {
 }
 
 int main() {
+    srand(time(NULL)); // Initialize the seed for the random number generator
+
     Image originalImages[NUM_IMAGES];
     Image smoothedImages[NUM_IMAGES];
-
-    srand(time(NULL)); // Inicializar la semilla del generador de números aleatorios
 
     for(int i = 0; i < NUM_IMAGES; i++) {
         originalImages[i] = createImage(WIDTH, HEIGHT);
@@ -91,7 +90,7 @@ int main() {
     }
 
     for(int i = 0; i < NUM_IMAGES; i++) {
-        printf("Original image %d:\n", i + 1);
+        printf("\nOriginal image %d:\n", i + 1);
         printImage(originalImages[i], WIDTH, HEIGHT);
     }
 
@@ -100,7 +99,7 @@ int main() {
     }
 
     for(int i = 0; i < NUM_IMAGES; i++) {
-        printf("Smoothed image %d:\n", i + 1);
+        printf("\nSmoothed image %d:\n", i + 1);
         printImage(smoothedImages[i], WIDTH, HEIGHT);
     }
 
