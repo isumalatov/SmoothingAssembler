@@ -1,6 +1,10 @@
-#include <stdlib.h> // Para malloc, free y rand
-#include <time.h>   // Para time
 #include <stdio.h> // Para printf
+#include <stdlib.h> // Para malloc y free
+#include <time.h>   // Para time
+
+#define WIDTH 10
+#define HEIGHT 10
+#define NUM_IMAGES 20
 
 typedef struct {
     int r;
@@ -75,3 +79,35 @@ void freeImage(Image img, int height) {
     free(img);
 }
 
+int main() {
+    Image originalImages[NUM_IMAGES];
+    Image smoothedImages[NUM_IMAGES];
+
+    srand(time(NULL)); // Inicializar la semilla del generador de números aleatorios
+
+    for(int i = 0; i < NUM_IMAGES; i++) {
+        originalImages[i] = createImage(WIDTH, HEIGHT);
+        fillImage(originalImages[i], WIDTH, HEIGHT);
+    }
+
+    for(int i = 0; i < NUM_IMAGES; i++) {
+        printf("Original image %d:\n", i + 1);
+        printImage(originalImages[i], WIDTH, HEIGHT);
+    }
+
+    for(int i = 0; i < NUM_IMAGES; i++) {
+        smoothedImages[i] = smoothImage(originalImages[i], WIDTH, HEIGHT);
+    }
+
+    for(int i = 0; i < NUM_IMAGES; i++) {
+        printf("Smoothed image %d:\n", i + 1);
+        printImage(smoothedImages[i], WIDTH, HEIGHT);
+    }
+
+    for(int i = 0; i < NUM_IMAGES; i++) {
+        freeImage(originalImages[i], HEIGHT);
+        freeImage(smoothedImages[i], HEIGHT);
+    }
+
+    return 0;
+}
