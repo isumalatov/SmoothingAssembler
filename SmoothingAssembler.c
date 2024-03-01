@@ -1,5 +1,6 @@
 #include <stdlib.h> // Para malloc, free y rand
 #include <time.h>   // Para time
+#include <stdio.h> // Para printf
 
 typedef struct {
     int r;
@@ -56,5 +57,21 @@ Image smoothImage(Image img, int width, int height) {
     }
 
     return newImg;
+}
+
+void printImage(Image img, int width, int height) {
+    for(int i = 0; i < height; i++) {
+        for(int j = 0; j < width; j++) {
+            printf("(%d, %d, %d) ", img[i][j].r, img[i][j].g, img[i][j].b);
+        }
+        printf("\n");
+    }
+}
+
+void freeImage(Image img, int height) {
+    for(int i = 0; i < height; i++) {
+        free(img[i]);
+    }
+    free(img);
 }
 
