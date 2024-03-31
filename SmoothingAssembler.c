@@ -1,6 +1,7 @@
 #include <stdio.h> // Para printf
 #include <stdlib.h> // Para malloc y free
 #include <time.h>   // Para time
+#include <opencv2/opencv.hpp>
 
 #define WIDTH 10
 #define HEIGHT 10
@@ -62,13 +63,20 @@ Image smoothImage(Image img, int width, int height) {
     return newImg;
 }
 
-void printImage(Image img, int width, int height) {
+void displayImage(Image img, int width, int height) {
+    cv::Mat mat(height, width, CV_8UC3);
+
     for(int i = 0; i < height; i++) {
         for(int j = 0; j < width; j++) {
-            printf("(%d, %d, %d) ", img[i][j].r, img[i][j].g, img[i][j].b);
+            cv::Vec3b & pixel = mat.at<cv::Vec3b>(i, j);
+            pixel[2] = img[i][j].r;
+            pixel[1] = img[i][j].g;
+            pixel[0] = img[i][j].b;
         }
-        printf("\n");
     }
+
+    cv::imshow("Image", mat);
+    cv::waitKey(0);
 }
 
 void freeImage(Image img, int height) {
@@ -90,8 +98,7 @@ int main() {
     }
 
     for(int i = 0; i < NUM_IMAGES; i++) {
-        printf("\nOriginal image %d:\n", i + 1);
-        printImage(originalImages[i], WIDTH, HEIGHT);
+        displayImage(originalImages[i], WIDTH, HEIGHT);
     }
 
     for(int i = 0; i < NUM_IMAGES; i++) {
@@ -99,8 +106,7 @@ int main() {
     }
 
     for(int i = 0; i < NUM_IMAGES; i++) {
-        printf("\nSmoothed image %d:\n", i + 1);
-        printImage(smoothedImages[i], WIDTH, HEIGHT);
+        displayImage(smoothedImages[i], WIDTH, HEIGHT);
     }
 
     for(int i = 0; i < NUM_IMAGES; i++) {
