@@ -40,22 +40,48 @@ void fillImage(Image img, int width, int height)
 
 void smoothImageA(int i, int j, int width, int height, int *sumR, int *sumG, int *sumB, int *count, Pixel **img)
 {
-    for (int k = -1; k <= 1; k++)
-    {
-        for (int l = -1; l <= 1; l++)
-        {
-            int ni = i + k;
-            int nj = j + l;
+    asm(
+        "push bp\n"
+        "mov bp, sp\n"
+        "push si\n"
+        "push di\n"
 
-            if (ni >= 0 && ni < height && nj >= 0 && nj < width)
-            {
-                *sumR += img[ni][nj].r;
-                *sumG += img[ni][nj].g;
-                *sumB += img[ni][nj].b;
-                (*count)++;
-            }
-        }
-    }
+        "mov dword ptr [bp + 20], 0\n"
+        "mov dword ptr [bp + 24], 0\n"
+        "mov dword ptr [bp + 28], 0\n"
+        "mov dword ptr [bp + 32], 0\n"
+
+        "mov cx, 3\n"
+        "label1:\n"
+            "mov bx, 3\n"
+            "label2:\n"
+                "lea si, [bp + 8 + cx - 2]\n"
+                "lea di, [bp + 12 + bx - 2]\n"
+
+                "cmp si, 0\n"
+                "jl endif\n"
+                "cmp si, [bp + 16]\n"
+                "jge endif\n"
+                "cmp di, 0\n"
+                "jl endif\n"
+                "cmp di, [bp + 20]\n"
+                "jge endif\n"
+
+                "add [bp + 24], [bp + 36 + si*PIXEL_SIZE + di*PIXEL_SIZE + R_OFFSET]\n"
+                "add [bp + 28], [bp + 36 + si*PIXEL_SIZE + di*PIXEL_SIZE + G_OFFSET]\n"
+                "add [bp + 32], [bp + 36 + si*PIXEL_SIZE + di*PIXEL_SIZE + B_OFFSET]\n"
+                "inc [bp + 32]\n"
+
+                "endif:\n"
+                "dec bx\n"
+                "jnz label2\n"
+            "dec cx\n"
+            "jnz label1\n"
+
+        "pop di\n"
+        "pop si\n"
+        "pop bp\n"
+    );
 }
 
 Image smoothImage(Image img, int width, int height)
