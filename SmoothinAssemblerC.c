@@ -38,26 +38,6 @@ void fillImage(Image img, int width, int height)
     }
 }
 
-void smoothImageA(int i, int j, int width, int height, int *sumR, int *sumG, int *sumB, int *count, Pixel **img)
-{
-    for (int k = -1; k <= 1; k++)
-    {
-        for (int l = -1; l <= 1; l++)
-        {
-            int ni = i + k;
-            int nj = j + l;
-
-            if (ni >= 0 && ni < height && nj >= 0 && nj < width)
-            {
-                *sumR += img[ni][nj].r;
-                *sumG += img[ni][nj].g;
-                *sumB += img[ni][nj].b;
-                (*count)++;
-            }
-        }
-    }
-}
-
 Image smoothImage(Image img, int width, int height)
 {
     Image newImg = createImage(width, height);
@@ -68,7 +48,22 @@ Image smoothImage(Image img, int width, int height)
         {
             int sumR = 0, sumG = 0, sumB = 0, count = 0;
 
-            smoothImageA(i, j, width, height, &sumR, &sumG, &sumB, &count, img);
+            for (int k = -1; k <= 1; k++)
+            {
+                for (int l = -1; l <= 1; l++)
+                {
+                    int ni = i + k;
+                    int nj = j + l;
+
+                    if (ni >= 0 && ni < height && nj >= 0 && nj < width)
+                    {
+                        sumR += img[ni][nj].r;
+                        sumG += img[ni][nj].g;
+                        sumB += img[ni][nj].b;
+                        count++;
+                    }
+                }
+            }
 
             newImg[i][j].r = sumR / count;
             newImg[i][j].g = sumG / count;
