@@ -70,9 +70,9 @@ void smoothImageA(int i, int j, int width, int height, int* sumR, int* sumG, int
 
         //aqui va lo que hay dentro del if
 
-        //aqui va lo de sumar sumr, sumg, sumb
         //aqui sumamos sumr, sumg, sumb
-
+        //aqui acaba el sumar sumr, sumg, sumb
+        
         //aqui sumamos count
         mov esi, count
         add dword ptr [esi], 1 // incrementa count en 1
