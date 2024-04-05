@@ -4,7 +4,7 @@
 
 #define WIDTH 10
 #define HEIGHT 10
-#define NUM_IMAGES 20
+#define NUM_IMAGES 1
 
 typedef struct
 {
@@ -13,14 +13,14 @@ typedef struct
     int b;
 } Pixel;
 
-typedef Pixel **Image;
+typedef Pixel** Image;
 
 Image createImage(int width, int height)
 {
-    Image img = (Pixel **)malloc(height * sizeof(Pixel *));
+    Image img = (Pixel**)malloc(height * sizeof(Pixel*));
     for (int i = 0; i < height; i++)
     {
-        img[i] = (Pixel *)malloc(width * sizeof(Pixel));
+        img[i] = (Pixel*)malloc(width * sizeof(Pixel));
     }
     return img;
 }
@@ -38,50 +38,48 @@ void fillImage(Image img, int width, int height)
     }
 }
 
-void smoothImageA(int i, int j, int width, int height, int *sumR, int *sumG, int *sumB, int *count, Pixel **img)
+void smoothImageA(int i, int j, int width, int height, int* sumR, int* sumG, int* sumB, int* count, Pixel** img)
 {
-    asm(
-        "push bp\n"
-        "mov bp, sp\n"
-        "push si\n"
-        "push di\n"
+    __asm
+    {
+        mov ecx, i //ecx tiene i
+        mov edx, j //edx tiene j
 
-        "mov dword ptr [bp + 20], 0\n"
-        "mov dword ptr [bp + 24], 0\n"
-        "mov dword ptr [bp + 28], 0\n"
-        "mov dword ptr [bp + 32], 0\n"
+        mov eax, -1 //eax tiene k
+        loop_start:
 
-        "mov cx, 3\n"
-        "label1:\n"
-            "mov bx, 3\n"
-            "label2:\n"
-                "lea si, [bp + 8 + cx - 2]\n"
-                "lea di, [bp + 12 + bx - 2]\n"
+        mov ebx, -1 //ebx tiene l
+        loop_start2 :
 
-                "cmp si, 0\n"
-                "jl endif\n"
-                "cmp si, [bp + 16]\n"
-                "jge endif\n"
-                "cmp di, 0\n"
-                "jl endif\n"
-                "cmp di, [bp + 20]\n"
-                "jge endif\n"
+        mov esi, ecx
+        add esi, eax
+        mov edi, edx
+        add edi, ebx
 
-                "add [bp + 24], [bp + 36 + si*PIXEL_SIZE + di*PIXEL_SIZE + R_OFFSET]\n"
-                "add [bp + 28], [bp + 36 + si*PIXEL_SIZE + di*PIXEL_SIZE + G_OFFSET]\n"
-                "add [bp + 32], [bp + 36 + si*PIXEL_SIZE + di*PIXEL_SIZE + B_OFFSET]\n"
-                "inc [bp + 32]\n"
+        cmp esi, 0
+        jl end_if
 
-                "endif:\n"
-                "dec bx\n"
-                "jnz label2\n"
-            "dec cx\n"
-            "jnz label1\n"
+        cmp esi, height
+        jge end_if
 
-        "pop di\n"
-        "pop si\n"
-        "pop bp\n"
-    );
+        cmp edi, 0
+        jl end_if
+
+        cmp edi, width
+        jge end_if  //esi y edi tienen ni y nj
+
+        //aqui va lo que hay dentro del if
+
+        //aqui acaba el if
+
+        end_if:
+        inc ebx
+        cmp ebx, 1
+        jle loop_start2
+        inc eax
+        cmp eax, 1
+        jle loop_start
+    }
 }
 
 Image smoothImage(Image img, int width, int height)
