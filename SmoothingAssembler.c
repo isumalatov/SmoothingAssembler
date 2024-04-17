@@ -1,10 +1,11 @@
 #include <stdio.h>  // Para printf
 #include <stdlib.h> // Para malloc y free
 #include <time.h>   // Para time
+#include <iostream>
 
-#define WIDTH 10
-#define HEIGHT 10
-#define NUM_IMAGES 10
+#define WIDTH 1280
+#define HEIGHT 720
+#define NUM_IMAGES 20
 
 typedef struct
 {
@@ -38,72 +39,204 @@ void fillImage(Image img, int width, int height)
     }
 }
 
-void smoothImageA(int i, int j, int width, int height, int* sumR, int* sumG, int* sumB, int* count, Pixel** img)
+void x86smoothImageA(int i, int j, int width, int height, int* sumR, int* sumG, int* sumB, int* count, Pixel** img)
 {
     __asm
     {
-        mov ecx, i //ecx tiene i
-        mov edx, j //edx tiene j
-
         mov eax, -1 //eax tiene k
-        loop_start:
+        jmp ln4
 
-        mov ebx, -1 //ebx tiene l
-            loop_start2 :
+        ln2:
+            add eax, 1
 
-            mov esi, ecx
-            add esi, eax
-            mov edi, edx
-            add edi, ebx
-
-            cmp esi, 0
-            jl end_if
-
-            cmp esi, height
-            jge end_if
-
-            cmp edi, 0
-            jl end_if
-
-            cmp edi, width
-            jge end_if  //esi y edi tienen ni y nj
-
-            //aqui va lo que hay dentro del if
-
-            //aqui va lo de sumar sumr, sumg, sumb
-            push eax
-            mov eax, img
-            mov eax, [eax + esi * 4] // obtener img[ni]
-            mov eax, [eax + edi * 4] // obtener img[ni][nj]
-
-            mov edi, sumR
-            add[edi], eax // sumar img[ni][nj].r a sumR
-            add eax, 4 // desplazarse 4 bytes para acceder a g
-            mov edi, sumG
-            add[edi], eax // sumar img[ni][nj].g a sumG
-            add eax, 4 // desplazarse 4 bytes para acceder a b
-            mov edi, sumB
-            add[edi], eax // sumar img[ni][nj].b a sumB
-            pop eax
-            //aqui sumamos sumr, sumg, sumb
-
-            //aqui sumamos count
-            mov esi, count
-            add dword ptr[esi], 1 // incrementa count en 1
-            //aqui acaba el sumar count
-
-            //aqui acaba el if
-        end_if:
-        inc ebx
-            cmp ebx, 1
-            jle loop_start2
-            inc eax
+        ln4:
             cmp eax, 1
-            jle loop_start
+            jg ln1
+            mov ebx, -1 //ebx tiene l
+            jmp ln7
+
+        ln5:
+            add ebx, 1
+
+        ln7:
+            cmp ebx, 1
+            jg ln2
+
+            mov esi, i // i
+            add esi, eax // ni
+        
+            mov edi, j // j
+            add edi, ebx // nj
+
+            cmp esi, 0 // ni == 0?
+            jl ln5
+
+            cmp esi, height // ni and height
+            jge ln5
+
+            cmp edi, 0 // nj == 0?
+            jl ln5
+
+            cmp edi, width // nj and width
+            jge ln5
+
+            push eax
+
+            imul eax, edi, 12
+            mov edx, img
+            mov ecx, DWORD PTR[edx + esi * 4]
+            mov edx, sumR
+            mov edx, [edx]
+            add edx, [ecx+eax]
+            mov eax, sumR
+            mov DWORD PTR[eax], edx
+        
+            imul ecx, edi, 12
+            mov eax, img
+            mov edx, [eax+esi*4]
+            mov eax, sumG
+            mov eax, [eax]
+            add eax, [edx+ecx+4]
+            mov ecx, sumG
+            mov DWORD PTR[ecx], eax
+
+            imul edx, edi, 12
+            mov ecx, img
+            mov eax, [ecx + esi * 4]
+            mov ecx, sumB
+            mov ecx, [ecx]
+            add ecx, [eax + edx + 8]
+            mov edx, sumB
+            mov DWORD PTR[edx], ecx
+
+            mov eax, count
+            mov ecx, [eax]
+            add ecx, 1
+            mov edx, count
+            mov [edx], ecx
+
+            pop eax
+
+            jmp ln5
+
+        ln1:
     }
 }
 
-Image smoothImage(Image img, int width, int height)
+void CsmoothImageA(int i, int j, int width, int height, int* sumR, int* sumG, int* sumB, int* count, Pixel** img)
+{
+    for (int k = -1; k <= 1; k++)
+    {
+        for (int l = -1; l <= 1; l++)
+        {
+            int ni = i + k;
+            int nj = j + l;
+
+            if (ni >= 0 && ni < height && nj >= 0 && nj < width)
+            {
+                *sumR += img[ni][nj].r;
+                *sumG += img[ni][nj].g;
+                *sumB += img[ni][nj].b;
+                (*count)++;
+            }
+        }
+    }
+}
+
+void SSEsmoothImageA(int i, int j, int width, int height, int* sumR, int* sumG, int* sumB, int* count, Pixel** img)
+{
+    int color[3];
+    int result[4] = { *sumR, *sumG, *sumB}; // one extra for memory issues
+    __asm
+    {
+        mov eax, -1 //eax tiene k
+        jmp ln4
+
+        ln2 :
+        add eax, 1
+
+            ln4 :
+            cmp eax, 1
+            jg ln1
+            mov ebx, -1 //ebx tiene l
+            jmp ln7
+
+            ln5 :
+        add ebx, 1
+
+            ln7 :
+            cmp ebx, 1
+            jg ln2
+
+            mov esi, i // i
+            add esi, eax // ni
+
+            mov edi, j // j
+            add edi, ebx // nj
+
+            cmp esi, 0 // ni == 0?
+            jl ln5
+
+            cmp esi, height // ni and height
+            jge ln5
+
+            cmp edi, 0 // nj == 0?
+            jl ln5
+
+            cmp edi, width // nj and width
+            jge ln5
+
+            push eax
+
+            imul    eax, edi, 12
+            mov edx, img
+            mov ecx, DWORD PTR[edx + esi * 4]
+            mov ecx, [ecx + eax]
+            mov dword ptr[color], ecx
+
+            imul ecx, edi, 12
+            mov eax, img
+            mov edx, [eax + esi * 4]
+            mov edx, [edx + ecx + 4]
+            mov dword ptr[color+4], edx
+
+            imul edx, edi, 12
+            mov ecx, img
+            mov eax, [ecx + esi * 4]
+            mov eax, [eax + edx + 8]
+            mov dword ptr[color + 8], eax
+
+            movdqu xmm0, result
+            movdqu xmm1, color
+            paddq xmm0, xmm1
+            movdqu result, xmm0
+
+            mov eax, count
+            mov ecx, [eax]
+            add ecx, 1
+            mov edx, count
+            mov[edx], ecx
+
+            pop eax
+
+            jmp ln5
+
+            ln1:
+            mov eax, dword ptr[result]
+            mov ebx, sumR
+            mov[ebx], eax
+
+            mov eax, dword ptr[result+4]
+            mov ebx, sumG
+            mov[ebx], eax
+
+            mov eax, dword ptr[result+8]
+            mov ebx, sumB
+            mov[ebx], eax
+    }
+}
+
+Image smoothImage(Image img, int width, int height, char indicator)
 {
     Image newImg = createImage(width, height);
 
@@ -112,8 +245,9 @@ Image smoothImage(Image img, int width, int height)
         for (int j = 0; j < width; j++)
         {
             int sumR = 0, sumG = 0, sumB = 0, count = 0;
-
-            smoothImageA(i, j, width, height, &sumR, &sumG, &sumB, &count, img);
+            if (indicator == 'x') x86smoothImageA(i, j, width, height, &sumR, &sumG, &sumB, &count, img);
+            else if (indicator == 'c') CsmoothImageA(i, j, width, height, &sumR, &sumG, &sumB, &count, img);
+            else if (indicator == 's') SSEsmoothImageA(i, j, width, height, &sumR, &sumG, &sumB, &count, img);
 
             newImg[i][j].r = sumR / count;
             newImg[i][j].g = sumG / count;
@@ -147,7 +281,11 @@ void freeImage(Image img, int height)
 
 int main()
 {
+
+    printf("-----------------------------------------\n");
+    printf("IMAGE SMOOTHING ALGORITHM\n");
     srand(time(NULL)); // Initialize the seed for the random number generator
+
 
     Image originalImages[NUM_IMAGES];
     Image smoothedImages[NUM_IMAGES];
@@ -156,30 +294,52 @@ int main()
     {
         originalImages[i] = createImage(WIDTH, HEIGHT);
         fillImage(originalImages[i], WIDTH, HEIGHT);
+        //displayImage(originalImages[i], WIDTH, HEIGHT);
     }
 
+    clock_t timeC_start = clock();
     for (int i = 0; i < NUM_IMAGES; i++)
     {
-        printf("\nOriginal image %d:\n", i + 1);
-        displayImage(originalImages[i], WIDTH, HEIGHT);
+        smoothedImages[i] = smoothImage(originalImages[i], WIDTH, HEIGHT, 'c');
     }
-
-    for (int i = 0; i < NUM_IMAGES; i++)
+    clock_t timeC_end = clock();
+    double time_spentC = ((double)(timeC_end - timeC_start)) / CLOCKS_PER_SEC;
+    printf("C: %f\n", time_spentC);
+    for (int i = 0;i < NUM_IMAGES;i++)
     {
-        smoothedImages[i] = smoothImage(originalImages[i], WIDTH, HEIGHT);
-    }
-
-    for (int i = 0; i < NUM_IMAGES; i++)
-    {
-        printf("\nSmoothed image %d:\n", i + 1);
-        displayImage(smoothedImages[i], WIDTH, HEIGHT);
-    }
-
-    for (int i = 0; i < NUM_IMAGES; i++)
-    {
-        freeImage(originalImages[i], HEIGHT);
+        //displayImage(smoothedImages[i], WIDTH, HEIGHT);
         freeImage(smoothedImages[i], HEIGHT);
     }
+
+    clock_t timeX_start = clock();
+    for (int i = 0; i < NUM_IMAGES; i++)
+    {
+        smoothedImages[i] = smoothImage(originalImages[i], WIDTH, HEIGHT, 'x');
+    }
+    clock_t timeX_end = clock();
+    double time_spentX = ((double)(timeX_end - timeX_start)) / CLOCKS_PER_SEC;
+    printf("x86: %f\n", time_spentX);
+    for (int i = 0;i < NUM_IMAGES;i++)
+    {
+        //displayImage(smoothedImages[i], WIDTH, HEIGHT);
+        freeImage(smoothedImages[i], HEIGHT);
+    }
+
+    size_t timeS_start = clock();
+    for (int i = 0; i < NUM_IMAGES; i++)
+    {
+        smoothedImages[i] = smoothImage(originalImages[i], WIDTH, HEIGHT, 's');
+    }
+    clock_t timeS_end = clock();
+    double time_spentS = ((double)(timeS_end - timeS_start)) / CLOCKS_PER_SEC;
+    printf("SSE: %f\n", time_spentS);
+    for (int i = 0;i < NUM_IMAGES;i++)
+    {
+        //displayImage(smoothedImages[i], WIDTH, HEIGHT);
+        freeImage(smoothedImages[i], HEIGHT);
+    }
+
+    printf("-----------------------------------------\n");
 
     return 0;
 }
